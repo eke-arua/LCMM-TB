@@ -6,9 +6,13 @@ library(here)
 
 
 #Load the data and remove observations with no visit dates
+# data <- import(
+#     here("Aim 1 & 2 - TB Men Masterdataset (analysis) 19 April 2023.dta")) %>%
+#   filter(!(record_id %in%  c(57, 537, 810)))
+
 data <- import(
-    here("Aim 1 & 2 - TB Men Masterdataset (analysis) 19 April 2023.dta")) %>%
-  filter(!(record_id %in%  c(57, 537, 810)))
+  here("Model data all.csv"))
+
 
 data <- data %>%
   mutate(
@@ -46,18 +50,22 @@ data <- data %>%
                           .default = hiv_status),
   hiv_status = cut(hiv_status, breaks = c(-Inf, 1, 2, Inf), labels = c(
     "Positive", "Negative", "Unknown")),
-  depression = cut(phq9_sum, breaks = c(-Inf, 4, 9, 14, 19, Inf), labels = c(
-    "None-Minimal (0-4)", "Mild (5-9)", "Moderate (10-14)",
-    "Moderate-Severe (15-19)", "Severe (20-27)")),
+  depression = cut(phq9_sum, breaks = c(-Inf, 5, 7, 14, Inf), labels = c(
+    "None-Minimal (0-4)", "Mild (5-7)", "Moderate (7-14)",
+    "Moderate-Severe (> 15)")),
   depression = fct_explicit_na(depression, "Missing"),
-  anxiety = cut(gad7_sum, breaks = c(-Inf, 5, 10, 14, Inf), labels = c(
-    "Mild (0-5)", "Moderate (6-10)", "Moderate Sever (11-15)", "Moderate-Severe (15-21)")),
+  medical_mistrust = cut(medical_misstrust, breaks = quantile(medical_misstrust, probs = c(0, 1/3, 2/3, 1), na.rm = T),
+                         labels = c("Low", "Medium", "High")),
+  medical_mistrust = fct_explicit_na(medical_mistrust, "Missing"),
+  anxiety = cut(gad7_sum, breaks = c(-Inf, 4, 10, 14, Inf), labels = c(
+    "Mild (0-4)", "Moderate (4-10)", "Moderate Sever (11-15)", "Moderate-Severe (15-21)")),
   anxiety = fct_explicit_na(anxiety, "Missing"),
   alcohol = rowSums(across(matches("^aa_.+_en$")), na.rm = FALSE),
   alcohol = if_else(aa_q1a_en == 0, 0, alcohol),
   alcohol_use = cut(alcohol,
                     breaks = c(-Inf, 7, 14, Inf),
                     labels = c("Low-risk", "Hazardous/Harmful", "Alcohol Dependent")),
+  alcohol_use = fct_explicit_na(alcohol_use, "Missing"),
   tb_knowledge = factor(tb_know_cat, levels = 1:2, labels = c("Low", "High")),
   tb_knowledge = fct_explicit_na(tb_knowledge, "Missing"),
   social_support_all = rowSums(across(matches("^ss_.+_en$")), na.rm = FALSE)/12, #want it to be NA if one is missing
@@ -66,6 +74,7 @@ data <- data %>%
   social_support_friends = (ss_q6_en + ss_q7_en + ss_q9_en + ss_q12_en)/4,
   social_capital = fct_explicit_na(factor(social_capital3, levels = 1:3, labels = c("Low (0-3)", "Med (4-6)", "High (7-9)")), "Missing"),
   tb_rel_stigma = fct_explicit_na(factor(tb_stigma4, levels = 0:3, labels = c("0-Low", "1", "2", "3-High")), "Missing"),
+  hiv_stigma = hiv_stigma_sum,
   track_comp = fct_explicit_na(factor(track_comp, levels = 0:1, labels = c("No", "Yes")), "Missing")
   )
 
@@ -74,7 +83,8 @@ data <- data %>%
   mutate(social_support_all_cat =
            case_when(social_support_all <3 ~ "low support",
                      social_support_all  >=3 & social_support_all <= 5 ~ "moderate support",
-                      social_support_all > 5 ~ "high support")#,
+                      social_support_all > 5 ~ "high support") )
+#,
   #        social_support_family_cat =
   #          case_when(social_support_family <3 ~ "low support",
   #                    social_support_family  >=3 & social_support_family <= 5 ~ "moderate support",
@@ -87,15 +97,16 @@ data <- data %>%
   #          case_when(social_support_sig_other <3 ~ "low support",
   #                    social_support_sig_other  >=3 & social_support_sig_other <= 5 ~ "moderate support",
   #                    social_support_sig_other > 5 ~ "high support")
-   )
 
-#create
 
+
+#create table
 data %>% select(gender_cat, calculated_age, relat_status, race_cat, edu_level,
                 liv_condition, live_alone_2weeks, liv_wth_child, #income,
                 bread_winner, ever_had_tb, employment_status,
-                know_any_tb, hiv_status, depression, anxiety, gender_norms, girl_equity,
-                alcohol_use, tb_knowledge, social_capital, tb_rel_stigma, track_comp) %>%
+                know_any_tb, hiv_status, depression, anxiety, medical_mistrust,
+                gender_norms, girl_equity,
+                alcohol_use, tb_knowledge, social_capital, tb_rel_stigma, hiv_stigma, track_comp) %>%
   tbl_summary(by = gender_cat, type = all_dichotomous() ~ "categorical",
               label = list(
                 liv_wth_child = "Live with children",
@@ -118,23 +129,19 @@ data %>% select(gender_cat, calculated_age, relat_status, race_cat, edu_level,
                 depression = "Depression (PHQ-9)",
                 anxiety = "Anxiety (GAD-7)",
                 gender_norms = "Gender norms score",
+                medical_mistrust = "Medical mistrust",
                 girl_equity = "Equity for girls score",
                 alcohol_use = "Alcohol use",
                 tb_knowledge = "TB Knowledge",
                 social_capital = "Social capital",
                 tb_rel_stigma = "TB Related Stigma",
+                hiv_stigma = "HIV stigma",
                 track_comp = "Finished treatment"
               )) %>%
 add_overall() %>%
-  add_p()
-
-%>%
+  add_p() %>%
   as_gt() %>%
   gt::gtsave(filename = "Table1.docx")
 
-t <- filter(data, !is.na(real_hiv_status)) %>%
-  select(s2_q4_hiv_status, real_hiv_status) %>%
-  filter(!s2_q4_hiv_status %in% c(3, 4))
 
-t_alc <- select(data, matches("^aa_.+_en$")) %>%
-  mutate(sum = rowSums(across(everything()), na.rm = FALSE))
+

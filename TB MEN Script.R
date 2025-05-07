@@ -185,7 +185,13 @@ legend_labels = c(paste0("Steady (", labels_all[1], "%)"),
           axis.title.x=element_text(size=25), axis.title.y = element_text(size=25),
           axis.text.x = element_text(size = 25), axis.text.y = element_text(size = 25)))
 
+#Combine classes with data
+model_data <- group_by(final_data_lcmm, record_id) %>%
+  slice(1) %>%
+  ungroup() %>%
+  left_join(data)
 
+write.csv(model_data, "Model data all.csv")
 #Repeat models for men and women
 
 #Men only
@@ -239,6 +245,12 @@ class_data_men$class <- as.factor(class_data_men$class)
 
 final_data_lcmm_men <- left_join(combine_data_men, class_data_men, by = "record_id")
 
+model_data_men <- group_by(final_data_lcmm_men, record_id) %>%
+  slice(1) %>%
+  ungroup() %>%
+  left_join(data)
+
+write.csv(model_data_men, "Model data men.csv")
 
 final_data_lcmm_men %>%
   filter(!is.na(class)) %>%
@@ -285,6 +297,14 @@ legend_labels_men = c(paste0("Rapid increase after 2 months (", labels_men[1], "
     theme(legend.position = c(0.2, 0.9), legend.text=element_text(size=25),
           axis.title.x=element_text(size=25), axis.title.y = element_text(size=25),
           axis.text.x = element_text(size = 25), axis.text.y = element_text(size = 25)))
+
+#Combine classes with data
+model_data_men <- group_by(class_data_men, record_id) %>%
+  slice(1) %>%
+  ungroup() %>%
+  left_join(data)
+
+write.csv(model_data_men, "Model data men.csv")
 
 #Women
 combine_data_women <- filter(combine_data2, gender == 2)
@@ -336,6 +356,13 @@ class_data_women$class <- as.factor(class_data_women$class)
 
 final_data_lcmm_women <- left_join(combine_data_women, class_data_women, by = "record_id")
 
+model_data_women <- group_by(final_data_lcmm_women, record_id) %>%
+  slice(1) %>%
+  ungroup() %>%
+  left_join(data)
+
+write.csv(model_data, "Model data all.csv")
+
 final_data_lcmm_women %>%
   group_by(record_id) %>%
   arrange(months_since_start) %>%
@@ -382,6 +409,13 @@ labels_women <- round(metrics_women[2, c("X.class1", "X.class2")], 2)
   theme(legend.position = c(0.2, 0.9), legend.text=element_text(size=25),
         axis.title.x=element_text(size=25), axis.title.y = element_text(size=25),
         axis.text.x = element_text(size = 25), axis.text.y = element_text(size = 25)))
+
+model_data_women <- group_by(class_data_women, record_id) %>%
+  slice(1) %>%
+  ungroup() %>%
+  left_join(data)
+
+write.csv(model_data_women, "Model data women.csv")
 
 (prow <- plot_grid(
   p_all ,
