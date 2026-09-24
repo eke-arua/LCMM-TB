@@ -1,0 +1,1 @@
+This contains code used to identify latent classes among individuals with TB who engage with the health system. The accompanying paper is: Medina-Marino, Andrew, et al. "Hidden in Success: Gendered Patterns of Suboptimal Care Engagement Among Tuberculosis Patients Who “Successfully” Completed Treatment in South Africa." Clinical Infectious Diseases 82.6 (2026): e1292-e1301.
